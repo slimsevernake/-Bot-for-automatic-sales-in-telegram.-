@@ -1,0 +1,56 @@
+version: '3.1'
+
+services:
+
+  seller_bot_db:
+    container_name: bot_db
+    image: sameersbn/postgresql:10-2
+    environment:
+      DB_USER: $POSTGRES_USER
+      DB_PASS: $POSTGRES_PASSWORD
+      DB_NAME: $POSTGRES_DB
+    restart: always
+    ports:
+      - 5432:5432
+    networks:
+      - botnet
+    volumes:
+      - ./pgdata:/var/lib/postgresql
+
+  seller_bot:
+    container_name: seller_bot_bot
+    build:
+      context: .
+    command: python app.py
+    networks:
+      - botnet
+    restart: always
+    env_file:
+      - ".env"
+    depends_on:
+      - seller_bot_db
+      - django
+    volumes:
+      - .:/src
+      - ./django_project/telegrambot/media:/src/django_project/telegrambot/media
+
+  django:
+    container_name: djangoproject
+    build:
+      context: .
+    command: python django_app.py runserver 0.0.0.0:8000 --noreload
+    ports:
+      - 8000:8000
+    networks:
+      - botnet
+    restart: always
+    env_file:
+      - ".env"
+    depends_on:
+      - seller_bot_db
+    volumes:
+      - ./django_project/telegrambot/media:/src/django_project/telegrambot/media
+
+networks:
+  botnet:
+    driver: bridge
